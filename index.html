@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets CRUD Interface!</title>
+    <title>Google Sheets CRUD Interface</title>
     <style>
         * {
             margin: 0;
@@ -281,6 +281,15 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -300,6 +309,7 @@
         </div>
 
         <div class="content">
+            <div id="debugInfo" class="debug-info" style="display: none;"></div>
             <div id="status" class="status"></div>
 
             <div class="action-bar">
@@ -321,7 +331,6 @@
         </div>
     </div>
 
-    <!-- Add/Edit Modal -->
     <div id="dataModal" class="modal">
         <div class="modal-content">
             <div class="modal-header" id="modalTitle">Add New Row</div>
@@ -333,21 +342,38 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
-        // These will be injected by your build process from GitHub Secrets
-        const CONFIG = {
-            apiKey: '{{GOOGLE_SHEETS_API_KEY}}',
-            spreadsheetId: '{{GOOGLE_SPREADSHEET_ID}}'
-        };
-
         let currentData = [];
         let headers = [];
         let editingRowIndex = -1;
         let availableSheets = [];
         let currentSheet = '';
 
-        // Initialize on page load
         window.onload = async () => {
+            const debugInfo = document.getElementById('debugInfo');
+            
+            if (typeof CONFIG === 'undefined') {
+                debugInfo.style.display = 'block';
+                debugInfo.innerHTML = '❌ <strong>ERROR:</strong> config.js not loaded! Check GitHub Actions logs.';
+                console.error('CONFIG object not found!');
+                return;
+            }
+            
+            console.log('CONFIG loaded:', {
+                hasApiKey: !!CONFIG.apiKey,
+                hasSpreadsheetId: !!CONFIG.spreadsheetId,
+                apiKeyLength: CONFIG.apiKey ? CONFIG.apiKey.length : 0,
+                spreadsheetIdLength: CONFIG.spreadsheetId ? CONFIG.spreadsheetId.length : 0
+            });
+
+            if (!CONFIG.apiKey || !CONFIG.spreadsheetId) {
+                debugInfo.style.display = 'block';
+                debugInfo.innerHTML = '❌ <strong>ERROR:</strong> API Key or Spreadsheet ID is missing from config.js';
+                console.error('Missing credentials:', CONFIG);
+                return;
+            }
+
             await loadAvailableSheets();
         };
 
@@ -363,14 +389,20 @@
         async function loadAvailableSheets() {
             try {
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}?key=${CONFIG.apiKey}`;
+                console.log('Fetching sheets from:', url.replace(CONFIG.apiKey, 'API_KEY_HIDDEN'));
+                
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch spreadsheet metadata. Check your API key and Spreadsheet ID.');
+                    const errorText = await response.text();
+                    console.error('API Error:', response.status, errorText);
+                    throw new Error(`API returned ${response.status}. Check your API key and Spreadsheet ID.`);
                 }
 
                 const data = await response.json();
                 availableSheets = data.sheets.map(sheet => sheet.properties.title);
+                
+                console.log('Found sheets:', availableSheets);
                 
                 const select = document.getElementById('sheetSelect');
                 select.innerHTML = availableSheets.map(sheet => 
@@ -384,6 +416,7 @@
             } catch (error) {
                 showStatus(error.message, 'error');
                 document.getElementById('sheetSelect').innerHTML = '<option value="">Error loading sheets</option>';
+                console.error('loadAvailableSheets error:', error);
             }
         }
 
@@ -399,10 +432,12 @@
 
             try {
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.spreadsheetId}/values/${currentSheet}?key=${CONFIG.apiKey}`;
+                console.log('Fetching data from sheet:', currentSheet);
+                
                 const response = await fetch(url);
                 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch data from sheet');
+                    throw new Error(`Failed to fetch data: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -417,6 +452,7 @@
                 showStatus('Data loaded successfully!', 'success');
             } catch (error) {
                 showStatus(error.message, 'error');
+                console.error('loadData error:', error);
             } finally {
                 document.getElementById('loadingDiv').style.display = 'none';
                 document.getElementById('dataTable').style.display = 'table';
@@ -528,6 +564,7 @@
                 }
             } catch (error) {
                 showStatus('Error updating sheet: ' + error.message, 'error');
+                console.error('updateSheet error:', error);
             }
         }
 
