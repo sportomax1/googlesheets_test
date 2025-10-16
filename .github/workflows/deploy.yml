@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy Google Sheets App
 
 on:
   push:
@@ -15,33 +15,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build-and-deploy:
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Create config.js with secrets
+
+      - name: Create config.js with Google Sheets secrets
         run: |
-          cat > config.js << 'EOF'
+          echo "Creating config.js..."
+          cat > config.js << 'EOL'
           const CONFIG = {
-              apiKey: '${{ secrets.GOOGLE_SHEETS_API_KEY }}',
-              spreadsheetId: '${{ secrets.GOOGLE_SPREADSHEET_ID }}'
+              apiKey: "${{ secrets.GOOGLE_SHEETS_API_KEY }}",
+              spreadsheetId: "${{ secrets.GOOGLE_SPREADSHEET_ID }}"
           };
-          EOF
-      
+          EOL
+          echo "config.js created successfully!"
+
+      - name: Verify config.js (debug)
+        run: |
+          echo "=== config.js contents (secrets masked) ==="
+          cat config.js | sed 's/AIza[^"]*/API_KEY_MASKED/g' | sed 's/[0-9a-zA-Z_-]\{20,\}/SPREADSHEET_ID_MASKED/g'
+          echo "=== End of config.js ==="
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-      
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
