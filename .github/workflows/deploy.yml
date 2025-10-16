@@ -25,13 +25,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create config.js with Google Sheets secrets
+      - name: Create config.js with secrets
         run: |
           echo "Creating config.js..."
           cat > config.js << 'EOL'
           const CONFIG = {
               apiKey: "${{ secrets.GOOGLE_SHEETS_API_KEY }}",
-              spreadsheetId: "${{ secrets.GOOGLE_SPREADSHEET_ID }}"
+              spreadsheetId: "${{ secrets.GOOGLE_SPREADSHEET_ID }}",
+              securityPin: "${{ secrets.SECURITY_PIN }}"
           };
           EOL
           echo "config.js created successfully!"
@@ -39,7 +40,7 @@ jobs:
       - name: Verify config.js (debug)
         run: |
           echo "=== config.js contents (secrets masked) ==="
-          cat config.js | sed 's/AIza[^"]*/API_KEY_MASKED/g' | sed 's/[0-9a-zA-Z_-]\{20,\}/SPREADSHEET_ID_MASKED/g'
+          cat config.js | sed 's/AIza[^"]*/API_KEY_MASKED/g' | sed 's/spreadsheetId: "[^"]*"/spreadsheetId: "SPREADSHEET_ID_MASKED"/g' | sed 's/securityPin: "[^"]*"/securityPin: "PIN_MASKED"/g'
           echo "=== End of config.js ==="
 
       - name: Setup Pages
