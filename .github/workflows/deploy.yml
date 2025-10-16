@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -10,23 +11,28 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
       
-      - name: Replace secrets in HTML
+      - name: Create config.js with secrets
         run: |
-          # Find all HTML files and replace placeholders
-          find . -name "*.html" -type f -exec sed -i "s|{{GOOGLE_SHEETS_API_KEY}}|${{ secrets.GOOGLE_SHEETS_API_KEY }}|g" {} +
-          find . -name "*.html" -type f -exec sed -i "s|{{GOOGLE_SPREADSHEET_ID}}|${{ secrets.GOOGLE_SPREADSHEET_ID }}|g" {} +
+          cat > config.js << 'EOF'
+          const CONFIG = {
+              apiKey: '${{ secrets.GOOGLE_SHEETS_API_KEY }}',
+              spreadsheetId: '${{ secrets.GOOGLE_SPREADSHEET_ID }}'
+          };
+          EOF
       
-      - name: Verify replacement (debug)
+      - name: Display config (masked)
         run: |
-          echo "Checking if secrets were replaced..."
-          grep -n "GOOGLE_SHEETS_API_KEY" *.html || echo "✓ API Key replaced successfully"
-          grep -n "GOOGLE_SPREADSHEET_ID" *.html || echo "✓ Spreadsheet ID replaced successfully"
+          echo "Config file created successfully"
+          ls -la config.js
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .
+          keep_files: false
