@@ -1,19 +1,29 @@
-name: Deploy to GitHub Pages Now
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Replace secrets in HTML
         run: |
-          sed -i "s/{{GOOGLE_SHEETS_API_KEY}}/${{ secrets.GOOGLE_SHEETS_API_KEY }}/g" index.html
-          sed -i "s/{{GOOGLE_SPREADSHEET_ID}}/${{ secrets.GOOGLE_SPREADSHEET_ID }}/g" index.html
+          # Find all HTML files and replace placeholders
+          find . -name "*.html" -type f -exec sed -i "s|{{GOOGLE_SHEETS_API_KEY}}|${{ secrets.GOOGLE_SHEETS_API_KEY }}|g" {} +
+          find . -name "*.html" -type f -exec sed -i "s|{{GOOGLE_SPREADSHEET_ID}}|${{ secrets.GOOGLE_SPREADSHEET_ID }}|g" {} +
+      
+      - name: Verify replacement (debug)
+        run: |
+          echo "Checking if secrets were replaced..."
+          grep -n "GOOGLE_SHEETS_API_KEY" *.html || echo "✓ API Key replaced successfully"
+          grep -n "GOOGLE_SPREADSHEET_ID" *.html || echo "✓ Spreadsheet ID replaced successfully"
       
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
