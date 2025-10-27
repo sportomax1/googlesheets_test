@@ -26,7 +26,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create config.js with secrets
-        # This step securely creates the file in the temporary runner environment.
         run: |
           echo "Creating config.js..."
           cat > config.js << 'EOL'
@@ -38,27 +37,10 @@ jobs:
           EOL
           echo "config.js created successfully!"
 
-      - name: Verify config.js (debug)
-        # This step is just for debugging to ensure injection worked, secrets are masked in logs.
-        run: |
-          echo "=== config.js contents (secrets masked) ==="
-          cat config.js | sed 's/${{ secrets.GOOGLE_SHEETS_API_KEY }}/API_KEY_MASKED/g' | sed 's/${{ secrets.GOOGLE_SPREADSHEET_ID }}/SPREADSHEET_ID_MASKED/g' | sed 's/${{ secrets.SECURITY_PIN }}/PIN_MASKED/g'
-          echo "=== End of config.js ==="
-
-      # --- CRUCIAL CLEANUP STEP ---
-      - name: Clean up config.js
-        # The build artifact will be the repository contents. 
-        # We delete the config file here to ensure it's not included in the artifact source.
-        run: |
-          echo "Removing config.js from source directory..."
-          rm config.js
-          
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
-        # This step packages the remaining files (like google_sheets_crud.html) 
-        # as the deployment artifact, which NO LONGER includes config.js.
         uses: actions/upload-pages-artifact@v3
         with:
           path: './'
