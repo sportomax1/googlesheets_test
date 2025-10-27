@@ -30,8 +30,7 @@ jobs:
           echo "Creating config.js..."
           cat > config.js << 'EOL'
           const CONFIG = {
-              apiKey: "${{ secrets.GOOGLE_SHEETS_API_KEY }}",
-              spreadsheetId: "${{ secrets.GOOGLE_SPREADSHEET_ID }}",
+              appsScriptUrl: "${{ secrets.APPS_SCRIPT_URL }}",
               securityPin: "${{ secrets.SECURITY_PIN }}"
           };
           EOL
