@@ -514,39 +514,38 @@
         }
 
         async function callAppsScript(action, params = {}) {
+            // Build URL with all parameters as query strings (GET only to avoid CORS preflight)
             const url = new URL(CONFIG.appsScriptUrl);
             url.searchParams.append('action', action);
             url.searchParams.append('pin', userPin);
             
-            for (let key in params) {
-                if (typeof params[key] === 'object') {
-                    continue; // Will be sent in body
-                }
-                url.searchParams.append(key, params[key]);
+            // Add all params as query strings
+            if (params.sheetName) {
+                url.searchParams.append('sheetName', params.sheetName);
+            }
+            if (params.rowData) {
+                url.searchParams.append('rowData', JSON.stringify(params.rowData));
+            }
+            if (params.rowIndex) {
+                url.searchParams.append('rowIndex', params.rowIndex);
             }
 
-            const options = {
-                method: params.rowData || params.rowIndex ? 'POST' : 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            };
-
-            if (params.rowData || params.rowIndex) {
-                options.body = JSON.stringify({
-                    pin: userPin,
-                    ...params
-                });
-            }
-
-            const response = await fetch(url.toString(), options);
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                redirect: 'follow'
+            });
             
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Request failed');
+                throw new Error('Request failed with status: ' + response.status);
             }
             
-            return await response.json();
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            return data;
         }
 
         async function loadAvailableSheets() {
